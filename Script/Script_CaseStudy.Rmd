@@ -1,0 +1,899 @@
+---
+title: "Case Study 1"
+subtitle: "How Does a Bike-Share Navigate Speedy Success?"
+author: "Mohammed Ahmed Mayariwala"
+date: "2022-07-25"
+output:
+  html_document:
+    toc: yes
+    toc_depth: 4
+  word_document:
+    toc: yes
+
+---
+```{css, echo=FALSE}
+pre {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+pre[class] {
+  max-height: 150px;
+}
+
+```
+
+```{css, echo=FALSE}
+.scroll-100 {
+  max-height: 200px;
+  overflow-y: auto;
+  background-color: inherit;
+}
+```
+## 1. Summary
+
+In 2016, Cyclistic launched a successful bike-share offering. Since then, the program has grown to a fleet of 5,824 bicycles that
+are geotracked and locked into a network of 692 stations across Chicago. The bikes can be unlocked from one station and returned to any other station in the system anytime.
+
+Until now, Cyclistic’s marketing strategy relied on building general awareness and appealing to broad consumer segments.
+One approach that helped make these things possible was the flexibility of its pricing plans: single-ride passes, full-day passes,and annual memberships.
+Customers who purchase single-ride or full-day passes are referred to as *casual riders*. Customers who purchase annual memberships are *Cyclistic members*.
+
+Annual members are far more profitable than casual riders, according to Cyclistic's financial analysts. The marketing director believes that increasing the number of annual memberships is critical to the company's future success. As a result, it is critical to comprehend how casual riders and annual members use Cyclistic bikes differently.
+
+## 2. Ask Phase
+
+### 2.1 Business Task
+
+Identify the behavioral differences between casual riders and annual members in terms of utilization of Cyclistic bikes.
+
+Stakeholders:
+
+1. Lily Moreno: The director of marketing in Cyclistic company.
+2. Cyclistic marketing analytics team
+
+## 3. Prepare Phase
+
+### 3.1 Dataset Used:
+
+The data source used for our case study is Cyclistic trip data. This dataset is stored in Kaggle by HuaiTsung Chen. The data has been made available by Motivate International Inc.
+
+The Datasets were generated from 2013/01/01 - 2020/12/31 but we will be working with dataset from last 4 years I,e **2016/01/01-2020/12/31**
+
+### 3.2 Data Limitation 
+
+* Only Subscriber/ Annual member's Date of birth and Gender is provided in dataset.
+* Dataframe format is inconsist.
+* Metadata providing the ridable_type according to bikeid is not available.
+
+### 3.3 Data Organization
+
+There are 19 available CSV documents.Each years record is divided into into 4 quaters documents and Each document represents a similar quantitative data for different periods of time tracked by Cyclical. The data is considered long since each row is one time point per subject, so each subject will have data in multiple rows.Every trip has a unique ID and different rows since data is tracked by time up to seconds.
+
+**Here is the glimps of the document**
+
+ | Dataset Name | Type | Description |
+| --- | --- | --- |
+| Divvy_Trips_2016_Q1 | Microsoft Excel CSV | Daily information over the first quarter of 2016. |
+| Divvy_Trips_2016_Q2 | Microsoft Excel CSV | Daily information over the Second Quater of 2016. |
+| Divvy_Trips_2016_Q3 | Microsoft Excel CSV | Daily information over the third Quater of 2016.|
+| Divvy_Trips_2016_Q4 | Microsoft Excel CSV | Daily information over the fourth Quater of 2016.|
+| Divvy_Trips_2017_Q1 | Microsoft Excel CSV | Daily information over the first quarter of 2017. |
+| Divvy_Trips_2017_Q2 | Microsoft Excel CSV | Daily information over the Second Quater of 2017. | 
+| ....... | ...... | ....... |
+| Divvy_Trips_20202_Q1 | Microsoft Excel CSV| Daily information over the first Quater of 2020.|
+
+
+### 3.4 Accessibility and privacy of data:
+
+Verifying the metadata of our dataset we can confirm it is open-source.Under this [license](https://ride.divvybikes.com/data-license-agreement) The owner has dedicated the work to the public domain by waiving all of his or her rights to the work worldwide under copyright law, including all related and neighboring rights, to the extent allowed by law. You can copy, modify, distribute and perform the work, even for commercial purposes, all without asking permission.
+
+This is public data that you can use to explore how different customer types are using Cyclistic bikes. And **data-privacy issues prohibit you from using rider's personally identifiable information**. This means that you won’t be able to connect pass purchases to credit card numbers to determine if casual riders live in the
+Cyclistic service area or if they have purchased multiple single passes
+
+### 3.5 Data Credibility and Integrity:
+
+Bike trips to a distributed survey conducted by Amazon Mechanical Turk between 2013/01/01 - 2020/12/31 produced these datasets. You can investigate how various client types utilise Cyclistic bikes using this open data.
+Furthermore, there can be no sampling bias as each dataset includes data on all of the trips made within the specified time periods rather than just a selection of them.
+
+### 3.5 Data Limitation 
+
+* Gender and birthday are only available for Subscribers.
+
+## 4. Process Phase 
+
+We will be using R for this case study.
+R is a powerful tool in your data analysis toolkit–and it also has a powerful community of users who are excited to share, collaborate, and connect with others.
+It is a programming language for statistical computing and graphics that you can use to clean, analyze, and graph your data. It is widely used by researchers from diverse disciplines to estimate and display results and by teachers of statistics and research methods.*You can learn more about it from [here](https://www.w3schools.com/r/r_intro.asp)*
+
+### 4.1 Installing packages and and opening libraries:
+
+The following software will be used for data cleaning and analysis.
+
+* ggplot2
+* dplyr
+* tidyverse
+* lubridate
+* skimr
+
+```{r library download, message = FALSE, warning = FALSE}
+library(dplyr)      #helps in data manipulation 
+library(tidyverse)  #helps wrangle data
+library(lubridate)  #helps wrangle date attributes
+library(ggplot2)    #helps visualize data
+library(skimr)      #helps in summarizing the data 
+library(knitr)      #helps in controlling the output
+library(utils)
+library(base)
+```                 
+
+### 4.2 Assigning the datasets to variables 
+Assining the dataset meaningful variable is always crusial. knowing the datasets we have this data set will help us answere our main buisness task which is **Identify the behavioral differences between casual riders and annual members in terms of utilization of Cyclistic bikes**
+```{r assigining datasets a variable,message = FALSE, warning = FALSE, class.output="scroll-100"}
+
+q1_2016 <- read.csv("~/All/Divvy_Trips_2016_Q1.csv")
+q2_2016 <- read.csv("~/All/Divvy_Trips_2016_Q2.csv")
+q3_2016 <- read.csv("~/All/Divvy_Trips_2016_Q3.csv")
+q4_2016 <- read.csv("~/All/Divvy_Trips_2016_Q4.csv")
+q1_2017 <- read.csv("~/All/Divvy_Trips_2017_Q1.csv")
+q2_2017 <- read.csv("~/All/Divvy_Trips_2017_Q2.csv")
+q3_2017 <- read.csv("~/All/Divvy_Trips_2017_Q3.csv")
+q4_2017 <- read.csv("~/All/Divvy_Trips_2017_Q4.csv")
+q1_2018 <- read.csv("~/All/Divvy_Trips_2018_Q1.csv")
+q2_2018 <- read.csv("~/All/Divvy_Trips_2018_Q2.csv")
+q3_2018 <- read.csv("~/All/Divvy_Trips_2018_Q3.csv")
+q4_2018 <- read.csv("~/All/Divvy_Trips_2018_Q4.csv")
+q1_2019 <- read.csv("~/All/Divvy_Trips_2019_Q1.csv")
+q2_2019 <- read.csv("~/All/Divvy_Trips_2019_Q2.csv")
+q3_2019 <- read.csv("~/All/Divvy_Trips_2019_Q3.csv")
+q4_2019 <- read.csv("~/All/Divvy_Trips_2019_Q4.csv")
+q1_2020 <- read.csv("~/All/Divvy_Trips_2020_Q1.csv")
+
+```
+### 4.3 Previewing our datasets
+
+Since, later it will be necessary to join all of the data in one cumulative dataset, the selected datasets will be previewed in order to verify whether the number, the order and the type of the variables in columns are the same for the upcoming unification.
+***Note: to not make it lengthy i have Highlighted the data that stands out***.
+```{r preview datasets,class.output="scroll-100", message = FALSE, warning = FALSE}
+knitr::kable(head(q1_2016,1))
+knitr::kable(head(q2_2016,1))
+
+
+```
+**....**
+```{r preview datasets 2016_q2-2018_q4,include=FALSE, message = FALSE, warning = FALSE}
+
+knitr::kable(head(q3_2016,1))
+knitr::kable(head(q4_2016,1))
+knitr::kable(head(q1_2017,1))
+knitr::kable(head(q2_2017,1))
+knitr::kable(head(q3_2017,1))
+knitr::kable(head(q4_2017,1))
+knitr::kable(head(q3_2018,1))
+knitr::kable(head(q4_2018,1))
+```
+
+```{r preview datasets 2018_q1-2018_q2, message = FALSE, warning = FALSE}
+knitr::kable(head(q1_2018,1))
+knitr::kable(head(q2_2018,1))
+```
+**.......**
+```{r preview datasets 2019_q3-2019_q4, include=FALSE,  message = FALSE, warning = FALSE}
+knitr::kable(head(q3_2019,1))
+knitr::kable(head(q4_2019,1))
+
+```
+
+```{r preview datasets 2019_q1-2020_q1, message = FALSE, warning = FALSE}
+knitr::kable(head(q1_2019,1))
+knitr::kable(head(q2_2019,1))
+knitr::kable(head(q1_2020,1))
+```
+Its clearly seen that all data set contain different column names to represent similar data its kinda understandable company may had to make changes in its format to process the data to different systems and database and to do so the changed it.
+But we need to make all the column names contestant as it will cause problem while merging the data together if we dint correct it. 
+### 4.4 Pre-Processing the data 
+
+#### 4.4.1 Renaming columns for consistancy 
+
+We will rename all the columns to make them consistent with q1_2020 (because this is expected to be the table design for future datasets)
+Another thing to keep in mind is that in the new table structure of 2020, "bikeid" has been replaced with "rideable type," so we must alter that as well.
+
+```{r Renaming , message = FALSE, warning = FALSE, results='hide',error = TRUE,class.output="scroll-100"}
+#We will use the rename function to help us renaming all the column names 
+(q1_2016c <- rename(q1_2016
+                   ,ride_id = trip_id
+                   ,rideable_type = bikeid 
+                   ,started_at = starttime  
+                   ,ended_at = stoptime  
+                   ,start_station_name = from_station_name 
+                   ,start_station_id = from_station_id 
+                   ,end_station_name = to_station_name 
+                   ,end_station_id = to_station_id 
+                   ,member_casual = usertype))
+
+(q2_2016c <- rename(q2_2016
+                   ,ride_id = trip_id
+                   ,rideable_type = bikeid 
+                   ,started_at = starttime  
+                   ,ended_at = stoptime  
+                   ,start_station_name = from_station_name 
+                   ,start_station_id = from_station_id 
+                   ,end_station_name = to_station_name 
+                   ,end_station_id = to_station_id 
+                   ,member_casual = usertype))
+
+#we will rename rest of the columns in this similar way but i will not include whole script in this report if u wanna check the rest of them u can check the Rmarkdown script of this report 
+```
+```{r Renaming rest of the dataset, include=FALSE,error=TRUE,message=FALSE,warning=FALSE,results='hide'}
+
+(q3_2016c <- rename(q3_2016
+                   ,ride_id = trip_id
+                   ,rideable_type = bikeid 
+                   ,started_at = starttime  
+                   ,ended_at = stoptime  
+                   ,start_station_name = from_station_name 
+                   ,start_station_id = from_station_id 
+                   ,end_station_name = to_station_name 
+                   ,end_station_id = to_station_id 
+                   ,member_casual = usertype))
+
+(q4_2016c <- rename(q4_2016
+                   ,ride_id = trip_id
+                   ,rideable_type = bikeid 
+                   ,started_at = starttime  
+                   ,ended_at = stoptime  
+                   ,start_station_name = from_station_name 
+                   ,start_station_id = from_station_id 
+                   ,end_station_name = to_station_name 
+                   ,end_station_id = to_station_id 
+                   ,member_casual = usertype))
+
+(q1_2017c <- rename(q1_2017
+                   ,ride_id = trip_id
+                   ,rideable_type = bikeid 
+                   ,started_at = start_time  
+                   ,ended_at = end_time  
+                   ,start_station_name = from_station_name 
+                   ,start_station_id = from_station_id 
+                   ,end_station_name = to_station_name 
+                   ,end_station_id = to_station_id 
+                   ,member_casual = usertype))
+
+(q2_2017c <- rename(q2_2017
+                   ,ride_id = trip_id
+                   ,rideable_type = bikeid 
+                   ,started_at = start_time  
+                   ,ended_at = end_time  
+                   ,start_station_name = from_station_name 
+                   ,start_station_id = from_station_id 
+                   ,end_station_name = to_station_name 
+                   ,end_station_id = to_station_id 
+                   ,member_casual = usertype))
+
+(q3_2017c <- rename(q3_2017
+                   ,ride_id = trip_id
+                   ,rideable_type = bikeid 
+                   ,started_at = start_time  
+                   ,ended_at = end_time  
+                   ,start_station_name = from_station_name 
+                   ,start_station_id = from_station_id 
+                   ,end_station_name = to_station_name 
+                   ,end_station_id = to_station_id 
+                   ,member_casual = usertype))
+
+(q4_2017c <- rename(q4_2017
+                   ,ride_id = trip_id
+                   ,rideable_type = bikeid 
+                   ,started_at = start_time  
+                   ,ended_at = end_time  
+                   ,start_station_name = from_station_name 
+                   ,start_station_id = from_station_id 
+                   ,end_station_name = to_station_name 
+                   ,end_station_id = to_station_id 
+                   ,member_casual = usertype))
+
+q1_2018c <- q1_2018
+names(q1_2018c) <-c("ride_id", "started_at", "ended_at", "rideable_type", "tripduration", "start_station_id", "start_station_name", "end_station_id", "end_station_name", "member_casual", "gender", "birthyear")     
+
+(q2_2018c <- rename(q2_2018
+                   ,ride_id = trip_id
+                   ,rideable_type = bikeid 
+                   ,started_at = start_time  
+                   ,ended_at = end_time  
+                   ,start_station_name = from_station_name 
+                   ,start_station_id = from_station_id 
+                   ,end_station_name = to_station_name 
+                   ,end_station_id = to_station_id 
+                   ,member_casual = usertype))
+
+(q3_2018c <- rename(q3_2018
+                   ,ride_id = trip_id
+                   ,rideable_type = bikeid 
+                   ,started_at = start_time  
+                   ,ended_at = end_time  
+                   ,start_station_name = from_station_name 
+                   ,start_station_id = from_station_id 
+                   ,end_station_name = to_station_name 
+                   ,end_station_id = to_station_id 
+                   ,member_casual = usertype))
+
+(q4_2018c <- rename(q4_2018
+                   ,ride_id = trip_id
+                   ,rideable_type = bikeid 
+                   ,started_at = start_time  
+                   ,ended_at = end_time  
+                   ,start_station_name = from_station_name 
+                   ,start_station_id = from_station_id 
+                   ,end_station_name = to_station_name 
+                   ,end_station_id = to_station_id 
+                   ,member_casual = usertype))
+
+(q4_2019c <- rename(q4_2019
+                   ,ride_id = trip_id
+                   ,rideable_type = bikeid 
+                   ,started_at = start_time  
+                   ,ended_at = end_time  
+                   ,start_station_name = from_station_name 
+                   ,start_station_id = from_station_id 
+                   ,end_station_name = to_station_name 
+                   ,end_station_id = to_station_id 
+                   ,member_casual = usertype))
+
+(q3_2019c <- rename(q3_2019
+                   ,ride_id = trip_id
+                   ,rideable_type = bikeid 
+                   ,started_at = start_time  
+                   ,ended_at = end_time  
+                   ,start_station_name = from_station_name 
+                   ,start_station_id = from_station_id 
+                   ,end_station_name = to_station_name 
+                   ,end_station_id = to_station_id 
+                   ,member_casual = usertype))
+
+q2_2019c <- q2_2019
+names(q2_2019c) <-c("ride_id", "started_at", "ended_at", "rideable_type", "tripduration", "start_station_id", "start_station_name", "end_station_id", "end_station_name", "member_casual", "gender", "birthyear")                 
+(q1_2019c <- rename(q1_2019
+                   ,ride_id = trip_id
+                   ,rideable_type = bikeid 
+                   ,started_at = start_time  
+                   ,ended_at = end_time  
+                   ,start_station_name = from_station_name 
+                   ,start_station_id = from_station_id 
+                   ,end_station_name = to_station_name 
+                   ,end_station_id = to_station_id 
+                   ,member_casual = usertype))
+
+#removing our last variables to clear the occupied space 
+rm(q1_2016, q2_2016, q3_2016, q4_2016, q1_2017, q2_2017, q3_2017, q4_2017, q1_2018, q2_2018, q3_2018, q4_2018, q1_2019, q2_2019, q3_2019, q4_2019)
+```
+As the colamn of all the datasets have been converted now lets Inspect the dataframes and look for incongruities
+```{r view after rename , message = FALSE, warning = FALSE,error = TRUE,class.output="scroll-100"}
+str(q1_2016c)
+str(q1_2017c)
+```
+As can be seen, the *"Ride ID"* and *"rideable type"* are read as "integers" in this, thus we must convert them to characters before stacking.
+We can build a function and add data sets to it because the data is consistent across datasets. This will facilitate our job.
+```{r Conver function ,message=FALSE,warning=FALSE}
+convert <- function(datasets) {
+     mutate(datasets, ride_id = as.character(ride_id) 
+            , rideable_type = as.character(rideable_type)
+            , tripduration = as.integer(tripduration))
+  }
+```
+```{r Converting INT into CHR, message = FALSE, warning = FALSE,error = TRUE,class.output="scroll-100"}
+q1_2016c <- convert(q1_2016c)
+q2_2016c <- convert(q2_2016c)
+q3_2016c <- convert(q3_2016c)
+q4_2016c <- convert(q4_2016c)
+q1_2017c <- convert(q1_2017c)
+q2_2017c <- convert(q2_2017c)
+q3_2017c <- convert(q3_2017c)
+q4_2017c <- convert(q4_2017c)
+q1_2018c <- convert(q1_2018c)
+q2_2018c <- convert(q2_2018c)
+q3_2018c <- convert(q3_2018c)
+q4_2018c <- convert(q4_2018c)
+q1_2019c <- convert(q1_2019c)
+q2_2019c <- convert(q2_2019c)
+q3_2019c <- convert(q3_2019c)
+q4_2019c <- convert(q4_2019c)
+str(q1_2016c)
+
+```
+Now all the datasets are consistent across all the individual quaters of the year. That means now we can Stack individual quarter's data frames into one big dataframe that contains all the record from 2016's quater 1 to 2020's quater 1 .
+
+### 4.5 Data Merging 
+
+Let us merge all of the datasets into the large cumulative one.
+
+```{r Data Merging, error=TRUE, message=FALSE, warning=FALSE}
+all_trips <- bind_rows(q1_2016c, q2_2016c, q3_2016c, q4_2016c, q1_2017c, q2_2017c, q3_2017c, q4_2017c, q1_2018c, q2_2018c, q3_2018c, q4_2018c, q1_2019c, q2_2019c, q3_2019c, q4_2019c, q1_2020)
+#lets have a look at dataframe
+glimpse(all_trips)
+```
+```{r clearing variables 2,include=FALSE}
+rm(q1_2016c, q2_2016c, q3_2016c, q4_2016c, q1_2017c, q2_2017c, q3_2017c, q4_2017c, q1_2018c, q2_2018c, q3_2018c, q4_2018c, q1_2019c, q2_2019c, q3_2019c, q4_2019c, q1_2020 )
+#we have to clear these variable as they occupy large storing capacity as well as we wont need them further 
+```
+the *"all_trip'* is a cummilative dataset which contains all the observation from 2016/01/01 - 2020/03/31'
+
+### 4.6 Cleaning and formating
+
+#### 4.6.1 Cleaning
+
+Since the number of observation is very large, it is possible that there might be duplicates, errors or other inaccuracies, which need to be addressed by processing and cleaning the data. 
+
+First of all, it is necessary to get rid of the variables that do not give any insights into **the behavioral differences between casual riders and annual members in terms of utilization of bikes **, such as:
+
+* rideable_type  
+* start_station_name
+* start_station_id
+* end_station_name
+* end_station_id
+* start_lat
+* start_lng
+* end_lat
+* end_lng
+
+*We have to remove "rideable_types" as well , because the ride able type data is only available "q1_2020" and we do not have a meta datasets that contains details of ridable_type details according to  bike ID.*
+We can simply select the required column into the new dataframe. 
+```{r Cleaning Colamns,error=TRUE,message=FALSE,warning=FALSE}
+all_trips_clean  <- all_trips %>% select (c(ride_id , started_at, ended_at, member_casual))
+```
+```{r clearing the variable to free space,include=FALSE, warning=FALSE,message=FALSE}
+rm(all_trips, n, convert) 
+```
+Before cleaning and formatting the remaining data, it is necessary to have a look at the dataset.
+```{r general look at the dataset}
+glimpse(all_trips_clean)
+```
+
+Now when we see the class of *"start_at"* and *"ended_at"* it is shown as *<"Character">* class which cannot be used for general date operations such as making time series and calculating time intervals functions. we need to change it to datetime compatible class, But before converting them its always good to check the format of our dates.
+```{r cheaking format,message=FALSE,warning=FALSE}
+head(all_trips_clean$started_at)
+tail(all_trips_clean$started_at)
+```
+It is crucial to understand the format of the date and time in the dataframe before conversion because the dates Can formatted in a variety of ways. and we need to enter its format to extract the specifics while converting .
+
+For converting the *<"Character">* to *<"POSIXlt">*(its a class that stores date-time) we will use **as.POSIXlt()** function which Convert the *<"Character">* class to date/time.
+*The POSIXct class stores date/time values as the number of seconds since January 1, 1970, while the POSIXlt class stores them as a list with elements for second, minute, hour, day, month, and year, among others. Unless you need the list nature of the POSIXlt class, the POSIXct class is the usual choice for storing dates in R. you can check the "Dates and times in R" from [here](https://www.stat.berkeley.edu/~s133/dates.html)*
+```{r datetime cocnversion ,warning=FALSE,message=FALSE}
+#Lets create a function to perform the conversion more easy to understand and use 
+to_DateTime <- function(Datasets_col){
+  a <- as.POSIXct(Datasets_col,format="%m/%d/%Y %H:%M",tc="UTC")  # Produces NA when format is not "%m/%d/%Y %H:%M"
+  b<- as.POSIXct(Datasets_col,format="%Y-%m-%d %H:%M:%S",tc="UTC") # Produces NA when format is not "%Y-%m-%d %H:%M:%S"
+  a[is.na(a)] <- b[!is.na(b)] # Combine both while keeping their ranks
+  Datasets_col <- a # Put it back in your dataframe
+  Datasets_col <- format(Datasets_col,"%Y-%m-%d %H:%M:%S") #formating the dataset to 2020 format i,e "YYYY-MM-DD HH:MM:SS"
+} 
+#Applying the  function to our dataFrame 
+all_trips_clean$started_at <- to_DateTime(all_trips_clean$started_at)
+all_trips_clean$ended_at <- to_DateTime(all_trips_clean$ended_at)
+```
+Lets check the format to verify.
+```{r veryfing the conversion ,warning=FALSE,message=FALSE}
+head(all_trips_clean$ended_at)
+tail(all_trips_clean$ended_at)
+```
+
+lets again view out dataframe but this time we will view it with  The **skim_without_charts** command, it allows us to produce summaries without the spark graphs.
+```{r summary of dataset skim_chart ,warning=FALSE,message=FALSE}
+skim_without_charts(all_trips_clean)
+```
+
+
+Let's begin by discussing the character string variables. First, there are no missing values. Additionally, *"ride id"* reveals that the ride ID code's minimum  length is 7 *(in 2016)* and maximum lengths is 16 *(in 2020)* characters, demonstrating that the ID code's length is correct throughout. However, it also reveals that there are 15 272 309 distinct values in 15 272 370 rows, indicating that there are probably some duplicate values present and that they need to be removed.
+The precise number of duplicates equals:
+
+```{r number of duplicates}
+nrow(all_trips_clean) - n_unique(all_trips_clean$ride_id)
+```
+
+Even though the number of the duplicates is very small, it still better to remove them out of the dataset.
+
+```{r getting rid of duplicates}
+all_trips_clean <- all_trips_clean %>% distinct(ride_id, .keep_all = T)
+```
+
+Now the number of observations is equal to the number of unique values in the *ride_id* variable. One of the ways to check it is just to subtract the number of unique values in the *"ride_id"* from the number of rows, which should be equal to zero.
+
+```{r checking for duplicates again}
+nrow(all_trips_clean) - n_unique(all_trips_clean$ride_id)
+```
+
+Now, Lets check our our date variables *"started_at"* and *"ended_at"*, which tells when the ride started and ended. The table above shows that in both cases the number of missing values is equal to zero, meaning that every bike ride has the times listed. and the length is consistent through out the datafram. but we can't actually see the whole picture , i,e does the dataframe really represents the data between 2016 to 1st quater of 2020?
+to check that we can use **min()** and **max()** fuction which in our case will return the minimum date/time and maximum date/time of our dataframe.
+
+```{r min and max datetime ,warning=FALSE,message=FALSE}
+min(all_trips_clean$started_at)
+max(all_trips_clean$ended_at)
+```
+
+Looking at the minimal (2016-01-01 00:01:01) and maximum (2020-05-19 20:10:45) values of __started_at__ demonstrates that no ride has started before 2016, while looking at the maximum there are issue, as the dataset we used was only suppose to contain records for the 1st quater of 2020 which is *2020-03-31*. But as we can see the date here is *2020-05-19 this is odd.
+Lets further investigate to check how many observation falls into this.
+```{r}
+a <- all_trips_clean %>% filter(ended_at > "2020-04-00") #filtering the records which ended after 2020-04-00 into a new variable .
+nrow(a)
+a  # viewing our new variable 
+```
+
+The entry details are kinda bizarre in this, although there are only 22 records but when u see it these all entries don't makes any sense like if you check 1st row on it, it shows the ride *started at*- 
+09-01 and *ended at* 27-04 that's almost 11 days and when you further see its membership status its even a casual rider that even narrow down its options i,e he could have got 1 time ride pass or 1 day ride pass there is no way a casual ride could have used the bike for that long.
+
+Apart from that even if that data would have made sense we won't have used it as such values generally coincide with the scope of the research to analyze only those bike rides that happened  from 2016 to first quater of 2020.At the same time, number of unique values in both of the variables is less than the number of observations, but this is also feasible, because some of the rides might have started or ended at simultaneously.
+
+we will just filter out this rows for now 
+
+```{r filtering bad date data}
+all_trips_clean <-all_trips_clean %>% filter(ended_at < "2020-04-00") 
+```
+
+Now, all that is left is to look at data variable *member_casual* as the name suggest this column should only contain 2 types - 
+* "member" is a rider who purchased a 24-Hour Pass; 
+* "causal" is a rider who purchased an Annual Membership;
+But the column contains 4 unique types. it is kinda acceptable as the dataframe changed alot each years the terminology might have changed as well. 
+lets first check what are those unique characters.
+```{r checking the rider types }
+
+a <- unique(all_trips_clean$member_casual)
+knitr::kable(a)
+```
+in meta data its shown that "subscriber" refers to "member"
+"customer" refers to "casual" 
+"dependent" refers to "member"
+now lets change all these terms to their referred once. 
+```{r renamaing member_causal, message=FALSE, warning=FALSE}
+# Reassign to the desired values (we will go with the current 2020 labels)
+all_trips <-  all_trips_clean %>% 
+  mutate(member_casual = recode(member_casual
+                           ,"Subscriber" = "member"
+                           ,"Customer" = "casual"
+                           ,"Dependent" = "member"))
+
+```
+
+lets now make sure of it 
+
+```{r summrize by memeber_casual ,warning=FALSE,message=FALSE}
+knitr::kable(all_trips %>% group_by(member_casual) %>% summarize(n()))
+```
+As we can see no typos and no cleaning is further needed, since the values in the variable coincide with the context information that there are either casual riders or annual members and it remains constant along the dataframe
+```{r remove uneeded variables ,include=FALSE,message=FALSE,warning=FALSE}
+rm(all_trips_clean)
+
+```
+
+#### 4.6.2 Formating 
+
+The data can only be aggregated at the ride-level, which is too granular. We will want to add some additional columns of data, such as day, month, year that provide additional opportunities to aggregate the data. more on date formats in R found  [here]( https://www.statmethods.net/input/dates.html)
+
+```{r formating data by time ,warning=FALSE, message=FALSE}
+all_trips$date <- as.Date(all_trips$started_at) #The default format is yyyy-mm-dd
+all_trips$month <- format(as.Date(all_trips$date), "%m")
+all_trips$day <- format(as.Date(all_trips$date), "%d")
+all_trips$year <- format(as.Date(all_trips$date), "%Y")
+all_trips$day_of_week <- format(as.Date(all_trips$date), "%A")
+```
+
+We will Add another variable as "ride_length" to recalculate  all trips durations (in seconds) for more information [click here]( https://stat.ethz.ch/R-manual/R-devel/library/base/html/difftime.html)
+```{r difftime adding length ,message=FALSE,warning=FALSE}
+all_trips$ride_length <- difftime(all_trips$ended_at,all_trips$started_at)
+
+```
+Now lets look summary of our dataframe.
+```{r looking at new variables, warning=FALSE, message=FALSE}
+skim_without_charts(all_trips)
+```
+Fortunately, there are no missing values in these variables most of our dataset is clean we can see in the first table that unique values are accurate. there are 2 unique in members , there are 12 unique months , 31 days, 5 years and 7 days of week that indicates that all the variables we created are showing the data accurately.
+Under that table we can also see the max and min date has been cleaned of outleirs and are under the Scope of reaserch.
+
+However in the fourth table which shows the data of *ride_length*, the minimum value in this observation is less than zero, which does not make any sense. If one subtracts the time of the beginning of the ride from the time it ends, such a subtraction cannot be negative, unless the ride manages to start in the future and end in the past *(pun intended)*. Clearly, this is a mistake, and the data needs to be cleaned of negative values.
+
+Moreover, the maximum value is equal to astonishing 14 340 041 seconds, which is roughly 3,983 hours or 166 days. Clearly this is too long for a simple bike ride, thus representing abnormal value which might negatively affect later statistical values as a mean value of an average ride. Lets assume that the longest possible time an average bike ride can be one month and then get rid of all of the values which are longer than that.
+
+Lets begin by seeing the number of records containing abnormal values 
+```{r checking min max ride_length, warning=FALSE, message=FALSE}
+# we will create a new variable as we are removing data
+trips_data <- all_trips %>% filter(ride_length > 0 & ride_length < 3600*24*30) #3600=1 hour
+#lets also check how many rows we are gonna drop 
+nrow(all_trips) - nrow(trips_data)
+```
+there were only 479 rows that had abnormal values that less then 1% of our dataset so we can just drop them.
+
+Now that we are aware that the *ride length* is in units of Seconds, In order to scale the results into a more manageable format, it is appropriate to convert the seconds in the *ride_length* variable to minutes and rename it to the *ride_length_min*.
+```{r converting seconds into minutes ,warning=FALSE,message=FALSE}
+trips_data <- trips_data %>% mutate(ride_length = as.numeric(ride_length, units = "mins")) %>% rename(ride_length_mins = ride_length) 
+head(trips_data)
+```
+
+
+
+Having cleaned and formatted the dataset, lets have another look at it before proceeding with the analysis phase of the work.
+```{r view before analysing phase , message=FALSE,warning=FALSE}
+skim_without_charts(trips_data)
+
+```
+As it can be seen, this time there are no typos in unique values and no missing or extreme observations.
+
+
+## 5. Analyze phase And Share Phase
+
+After the data has been cleaned and processed, it is time to analyse it. To recap, the stakeholders' task is to "identify the behavioural differences between casual riders and annual members in terms of Cyclistic bike utilization." We could have simply used data from the most recent year of available data, 2019, to support our findings, but having more data strengthens our analysis and eliminates the possibility of ambiguous terms like "conicedence" influencing the data.  
+*Additionally Researchers have demonstrated that massive data can lead to lower estimation variance and hence better predictive performance. More data increases the probability that it contains useful information, which is advantageous.[Source](https://analyticsindiamag.com/is-more-data-always-better-for-building-analytics-models/)*
+
+### 5.1 Shares of the casual riders and the annual members aggrigated as in whole with details of each years
+
+Let us begin by determining the proportions of the various groups of bikers in the overall population of Cyclist customers and their portion of time spent on rides.
+```{r average for member and casual in total from 2016-2020}
+
+percentage_of_rides <- trips_data %>% group_by(member_casual) %>% 
+  summarize(percentage_of_rides =n()/nrow(trips_data )) %>% 
+  mutate(percentage_of_rides = scales::percent(percentage_of_rides))
+
+percentage_of_mins <- trips_data %>% 
+  group_by(member_casual) %>% 
+  summarize(percentage_of_mins = sum(ride_length_mins)/sum(trips_data$ride_length_mins)) %>%
+  mutate(percentage_of_mins = scales::percent(percentage_of_mins))
+
+knitr::kable(merge(percentage_of_rides, percentage_of_mins, by = "member_casual")) 
+```
+It can been seen that majority of the rides are initiated by Annual members, however when we check the mins spent by rider we can't see that big of a difference in percentage.
+Lets see the data by each year and see if we can find something interesting  
+```{r persentage from each year , message=FALSE,warning=FALSE}
+
+yearly_percentage <-  trips_data %>% 
+  add_count(year, member_casual) %>% 
+  add_count(year, name = 'year_n') %>%
+  group_by(year, member_casual) %>%
+  summarise(count_percentage = first(n)/first(year_n),
+    ride_Length = sum(ride_length_mins), .groups = "drop") %>% 
+  mutate(count_percentage = scales::percent(count_percentage))%>%
+  group_by(year) %>%
+  mutate(ride_Length = ride_Length/sum(ride_Length), ride_Length = scales :: percent(ride_Length))%>%
+  ungroup
+knitr::kable(yearly_percentage)
+
+#making a data viz for better understanding 
+yearly_percentage$count_percentage <- readr::parse_number(yearly_percentage$count_percentage)
+yearly_percentage$ride_Length <- readr::parse_number(yearly_percentage$ride_Length)
+ggplot(yearly_percentage) +
+  geom_bar(aes(x = year, y = count_percentage, fill = member_casual), position = "dodge", stat = "identity") +
+  labs(title="Member and Casual utilization comparison") +
+  geom_line(aes(x = year, y = ride_Length, color = member_casual, group = member_casual)) +
+  scale_y_continuous(labels = scales::label_percent(scale = 1))
+```
+
+We can see a downward trend in casual users count from 2016 to 2020's 1st quater. and an upward trend in annual members 
+
+### 5.2. Average Ride Length comparison .
+
+To begin with, the ride length difference may be identified as one of the most significant aspects in which the two types of bikers differ.
+
+lets look at the difference between average ride lengths of the casual riders and the annual members.
+
+```{r average value for member and casual}
+knitr::kable(trips_data %>% group_by(member_casual) %>%
+    summarize(mean_ride_length = mean(ride_length_mins)))
+```
+
+Clearly, casual riders who purchase single-ride or full-day passes spend three times as much time cycling as annual members who pay annual subscriptions. In this light, it's easy to see why Cyclistic's finance analysts concluded that annual members are far more profitable than casual riders. There is currently no profit variable available in the dataset, but it is possible that annual members are more profitable because they provide consistent profits while spending far less time than casual riders.
+
+### 5.3. differences in  riding habbits of casual and annual member
+Lets further investigate the riding habits of casual and annual members
+We can add new variable in the dataframe depending on ride length so we can categories riders into 3 different categories .
+
+* Short - Less than 30 minutes long;
+* Normal - Between 30 minutes and 60 minutes long;
+* Long - Longer than 60 minutes.
+
+Given that the average ride length for casual riders is three times greater than it is for yearly members, it is presumed that the percentage of longer rides taken by casual riders is higher.
+
+```{r rides length percentage distribution}
+trips_data <- trips_data %>% 
+                mutate(ride_length_type = case_when(
+                                ride_length_mins < 30 ~ "short",
+                                ride_length_mins >=30 & ride_length_mins <= 60 ~ "normal",
+                                ride_length_mins > 60 ~ "long"))
+
+Casual <- trips_data %>% 
+    filter(member_casual == "casual") %>%
+    group_by(ride_length_type) %>% 
+    summarise(casual = n()/sum(trips_data$member_casual == "casual"))
+
+Member <- trips_data %>% 
+    filter(member_casual == "member") %>%
+    group_by(ride_length_type) %>%
+    summarise(member = n()/sum(trips_data$member_casual == "member"))
+
+knitr::kable(merge(Casual, Member, by = "ride_length_type") %>%
+    arrange(factor(ride_length_type, levels = c("short", "normal", "long"))) %>%
+    mutate(casual = scales::percent(casual), member = scales::percent(member)))
+
+```
+
+As anticipated, annual members bike shorter distances more frequently than casual riders (96.2% vs. 64%). Because of this, the percentages of long and short rides among casual cyclists are higher. Additionally, it makes sense because the majority of occasional riders have a single-day or single-use permit and they attempt to make the most of it.
+
+### 5.4. Behavioral differences in terms of seasons of a year between the casual riders and the annual members.
+
+The frequency of rides for both groups of Cyclist customers may serve as a good indicator of behavioral variations throughout the year.
+
+```{r behavioral differences in different seasons of a year}
+trips_data_v2 <- trips_data %>% 
+    mutate(month_start = month(started_at), month_end = month(ended_at))
+
+trips_data_v2 <- trips_data_v2 %>% 
+                mutate(season = case_when(
+                                month_start %in% c(1,2,12) ~ "1.winter",
+                                month_start %in% c(3,4,5) ~ "2.spring",
+                                month_start %in% c(6,7,8) ~ "3.summer",
+                                month_start %in% c(9,10,11) ~ "4.autumn"))
+
+trips_data_v2 %>% ggplot(aes(season, fill = ride_length_type)) + 
+    geom_bar(position="stack") + 
+    theme(axis.text.x = element_text(angle = 90)) +
+    theme_classic() + 
+    labs(title="Number of Rides by Day", x ="Seasons", y = "Count") +
+    facet_wrap(~member_casual)
+```
+
+The barplot graph demonstrates that the number of casual rides is significantly higher in the summer and autumn than in the winter and spring. Furthermore, the number of long and normal rides appears to be proportionate to the overall number of rides; as a result, the number of such rides appears to be highest during the summer, when the overall number of casual rides is highest. In terms of annual membership, while the number of rides is significantly higher in summer and autumn than in winter and spring, the difference between the seasons is not as pronounced. At the same time, the proportions of long and normal rides are lower in all seasons when compared to casual rides.
+
+Now lets further attempt to look at the plot by individual months 
+```{r behavioral differences in different Months of a year}
+
+trips_data_v2 %>% 
+    ggplot(aes(month, fill = ride_length_type)) + 
+    geom_bar(position="stack") + 
+    theme(axis.text.x = element_text(angle = 90)) +
+    theme_classic() + 
+    labs(title="Number of Rides by Months", x ="Months", y = "Count") + 
+    facet_wrap(~member_casual)
+```
+
+The modified collection of graphs does not provide any interesting findings. For the casual rides the normal and long rides starts increasing after March and peaks at July and then slowly clams down in October, while for the annual membership rides, even though the increase of rides follows the similar pattern, their shares of long and normal ride are lower compared to the casual rides.
+
+### 5.5. Behavioral differences in different days of a week between the casual riders and the annual members.
+
+Lets have a look at the mean length of a ride for two different groups of the customers by different days of the week.
+
+```{r average for member and casual by weekday}
+EachDay_RideLen_cas <- trips_data_v2 %>% 
+    filter(member_casual == "casual") %>%
+    group_by(day_of_week) %>%
+    summarize(mean_ride_length_casual = mean(ride_length_mins))
+
+EachDay_RideLen_mem <- trips_data_v2 %>%
+    filter(member_casual == "member") %>% 
+    group_by(day_of_week) %>%
+    summarize(mean_ride_length_member = mean(ride_length_mins)) 
+
+knitr::kable(merge(EachDay_RideLen_cas, EachDay_RideLen_mem, by = "day_of_week") %>% 
+    arrange(factor(day_of_week, levels = c("Monday","Tuesday","Wednesday","Thursday","Friday","Saturday", "Sunday"))))
+```
+
+The table shows, in general, both the casual riders and the annual members tend to have slightly longer bicycle rides on weekends.
+
+Now, it is necessary to look at the number of rides in different days of the week for both types of the bicycle riders.
+
+```{r quantities of rides for member and casual by weekday}
+trips_data_v2 <- trips_data %>% 
+                mutate(day_of_week = case_when(
+                               day_of_week == "Monday" ~ "1.Mon",
+                                day_of_week == "Tuesday" ~ "2.Tue",
+                                day_of_week == "Wednesday" ~ "3.Wed",
+                                day_of_week == "Thursday" ~ "4.Thur",
+                                day_of_week == "Friday" ~ "5.Fri",
+                                day_of_week == "Saturday" ~ "6.Sat",
+                                day_of_week == "Sunday" ~ "7.Sun"))
+
+trips_data_v2 %>% ggplot(aes(x=day_of_week)) + 
+    geom_bar() + 
+    facet_grid(~member_casual) + 
+    theme_classic() + 
+    labs(title="Number of the Rides by Day", x ="Weekday", y = "Count")
+```
+
+The barplots show that there are significant increase in the number of the casual rides during the weekdays. However, the annual members do not demonstrate such an increase. On the contrary, the most numbers of the rides appear during the middle of the week.
+
+It would also make sense to look at the length of the rides depending on a weekday.
+
+```{r quantities of type rides for member and casual by weekday}
+trips_data_v2 <- trips_data_v2 %>% 
+                mutate(ride_length_type = case_when(
+                                ride_length_mins < 30 ~ "short",
+                                ride_length_mins >=30 & ride_length_mins <= 60 ~ "normal",
+                                ride_length_mins > 60 ~ "long"))
+
+trips_data_v2 %>% ggplot(aes(day_of_week, fill = ride_length_type)) +
+    geom_bar(position="stack") + 
+    theme(axis.text.x = element_text(angle = 90), legend.position="top") + 
+    labs(title="Number and Type of the Rides by Day", x ="Week days", y = "Count") +
+    facet_wrap(~member_casual)
+```
+
+The bar graph above shows that the number of both the long (>60 minutes) and the normal rides (between 30 and 60 minutes) increase in weekends for the casual rides. However, there are is no such increase for the annual members.
+
+### 5.7 Behavioral differences in different periods of a day the between the casual riders and the annual members.
+
+Lets have a look at differences between two different groups of the customers in terms of the frequence of the bicycle rides in different periods of time of a day. 
+
+However, before doing that it is necessary to significantly modify the data
+
+```{r modifying dataframe by day}
+trips_data_v3 <- trips_data_v2 %>% 
+                mutate(Hour = hour(started_at))%>%
+                 mutate(Hour = case_when(
+                                Hour == "0" ~ "01:00",
+                                Hour == "1" ~ "02:00",
+                                Hour == "2" ~ "03:00",
+                                Hour == "3" ~ "04:00",
+                                Hour == "4" ~ "05:00",
+                                Hour == "5" ~ "06:00",
+                                Hour == "6" ~ "07:00",
+                                Hour == "7" ~ "08:00",
+                                Hour == "8" ~ "09:00",
+                                Hour == "9" ~ "10:00",
+                                Hour == "10" ~ "11:00",
+                                Hour == "11" ~ "12:00",
+                                Hour == "12" ~ "13:00",
+                                Hour == "13" ~ "14:00",
+                                Hour == "14" ~ "15:00",
+                                Hour == "15" ~ "16:00",
+                                Hour == "16" ~ "17:00",
+                                Hour == "17" ~ "18:00",
+                                Hour == "18" ~ "19:00",
+                                Hour == "19" ~ "20:00",
+                                Hour == "20" ~ "21:00",
+                                Hour == "21" ~ "22:00",
+                                Hour == "22" ~ "23:00",
+                                Hour == "23" ~ "24:00"))
+
+trips_data_v3 <- trips_data_v3 %>% 
+                mutate(weekday_start_type = ifelse(day_of_week %in% c("6.Sat","7.Sun"),"Weekend", "Working day"))
+
+```
+Having modified the dataset, it is possible to create a barplot that demonstrates the frequencies of the rides separately for weekends and working days.
+
+```{r viz for day hour analysis}
+trips_data_v3 %>%
+    ggplot() + geom_bar(mapping = aes(x=Hour), fill = "steelblue", color ="steelblue") +
+    facet_grid(rows = vars(weekday_start_type), cols = vars(member_casual)) + 
+    theme(axis.text.x = element_text(angle = 90)) +
+    labs(title="Number of Rides by Day", x ="Time of day", y = "Count")
+```
+The collection of the barplots above clearly demonstrates that there are no vivid differences between the frequencies of the casual and the annual membership rides during week ends - both of the categories happen to gradually grow starting from morning (7.00) till lunchtime (14.00) and then slowly fall till an evening (20.00).
+
+However, there are significant differences between the frequencies of the rides during working days, since the casual riders demonstrate a steady growth only in the period after (9.00-18.00), while the annual members demonstrate such growth twice a day - in morning (06.00-08.00) and evening times (15.00-18.00). Such growth indicators might hint at the possible explanation that annual membership is very popular as the transportation means for average workers riding to and back from their workplaces.
+
+## 6 Conclusion (Act Phase)
+
+Cyclistic’s finance analysts have concluded that annual members are much more profitable than casual riders. The director of marketing believes the company’s future success depends on maximizing the number of annual memberships.
+
+Therefore, the business task imposed by the marketing department sounds like this: *Identify the behavioral differences between casual riders and annual members in terms of utilization of Cyclistic bikes*
+
+In the process of the analysis, the following strategies have been recommended based on the revealed behavioral differences between the casual riders and the annual members:
+
+|  Behavioral difference between the casual riders and the annual members | Findings | Recommendation  |
+|  --- | --- | ---  |
+|  Shares of the casual riders and the annual members aggregated as in whole with details of each years | When we look at the percentage of rides started across all years, it is evident that annual members have a higher percentage than casual members, and when we look at the same data for each individual year, we see that the Percentage of rides started by annual members continues to rise over time relative to casual members. | None  |
+|  Mean ride lengths for the casual riders and the annual members. | Clearly, the casual riders, who purchase single-ride or full-day passes, on average spend three times more minutes cycling than the annual members | None  |
+|  Differences between the casual riders and the annual members in terms of distribution of the type of the rides based on length. | Compared to casual cyclists, annual members had larger proportions of short rides (96.2% vs 64%) | It makes sense to conduct a survey collecting Qualitative and Quantitative data of Casual riders preferences to further improve the annual membership schemes (Note: that there is an Interpretation bias in this finding, Because it's possible that casual riders only ride to maximize the value of their pass rather than being ardent enthusiasts).  
+|  Behavioral differences in terms of seasons of a year | The number of rides initiated by both annual members and casual riders is significantly greater in  summer and autumn than in the winter and spring. However, the proportion of long and normal rides initiated by annual members is comparatively low in all seasons when compared to casual rides. | In the winter and spring, we can organise events such as (hill climbing competitions) and other fitness programs.  
+|  Behavioral differences in terms of a day of a week | The barplots showed that there are significant increase in the number of the casual rides during the weekends. However, the annual members do not demonstrate such an increase. On the contrary, the most numbers of the rides appear during the middle of the week | creating a sub-Annual membership that only allows for a 2+1 day access per week, as opposed to a full Annual membership that allows for a 5+2 day pass per week at a discounted rate, or Per Day Rate.  
+|  Behavioral differences in terms of a day of a week | The collection of the barplots above clearly demonstrates that there are no vivid differences between the frequencies of the casual and the annual membership rides during week ends, both of the categories happen to gradually grow starting from morning (7.00) till lunchtime (14.00) and then slowly fall till an evening (20.00). However, there are significant differences between the frequencies of the rides during working days, since the casual riders demonstrate a steady growth only in the period after (9.00-18.00), while the annual members demonstrate such growth twice a day - in morning (06.00-08.00) and evening times (15.00-18.00). Such growth indicators might hint at the possible explanation that annual membership is very popular as the transportation means for average workers riding to and back from their workplaces. | Creating awareness of benefits, affordability and connivance of using cyclist cycle as means of transport over other transportation  |
+
+To conclude: the following strategies are recommended based on the accomplished analysis:
+
+* - __Conduct a survey collecting Qualitative and Quantitative data of Casual riders preferences to further improve the annual membership schemes__; 
+* - __Organizing events such as (hill climbing competitions) and other fitness programs in Winter's and Spring.__;
+* - __Creating a sub-Annual membership that only allows for a 2+1 day access per week, as opposed to a full Annual membership that allows for a 5+2 day pass per week at a discounted rate, or Per Day Rate.__;
+* - __Creating awareness of benefits, affordability and connivance of using cyclist cycle as means of transport over other transportation__.
+
+
+Further Ideas to analyze 
+
+*Providing demographic data for all riders, such,aI age and gender, will help us determine how riders are distributed based on their ages and genders.*
+
+
+this is my first time writing a report, Initially it was created in Rmarkdown using RStudio, I hope You like it.
+Thank you for taking the time to read or simply look; I would appreciate any form of critique, suggestion, or comment, and I wish you a wonderful day filled with beautiful facts!✌️
